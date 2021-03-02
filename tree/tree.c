@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,13 +7,15 @@
 #define TREE_SUCCESS 0
 #define TREE_FAILURE -1
 
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+
 /*
  * Binary Search Tree
  * */
 
 #define TREE_COMMON                                                            \
   long key;                                                                    \
-  void *value;                                                                 \
   tree_t *parent;                                                              \
   tree_t *children[2]
 
@@ -37,17 +40,22 @@
  * */
 #define XRB_COLOR(node) ((rbtree_t *)(node))->color
 
+#define AVL_HEIGHT(node) ((node) ? ((avltree_t *)(node))->height : 0)
+/*
+ * R-value macro
+ * */
+#define XAVL_HEIGHT(node) ((avltree_t *)(node))->height
+
 typedef struct tree tree_t;
 
 struct tree {
   TREE_COMMON;
 };
 
-tree_t *tree_new(long key, void *value) {
+tree_t *tree_new(long key) {
   tree_t *node = (tree_t *)malloc(sizeof(tree_t));
   /* Initialize */
   node->key       = key;
-  node->value     = value;
   node->parent    = NULL;
   LFT_CHILD(node) = NULL;
   RGT_CHILD(node) = NULL;
@@ -82,6 +90,15 @@ tree_t *tree_max(tree_t *node) {
     }
   }
   return node;
+}
+
+unsigned long tree_height(tree_t *node) {
+  if (node) {
+    unsigned long h1 = tree_height(LFT_CHILD(node));
+    unsigned long h2 = tree_height(RGT_CHILD(node));
+    return MAX(h1, h2) + 1;
+  }
+  return 0;
 }
 
 void tree_insert(tree_t **root_ptr, tree_t *z) {
@@ -170,6 +187,20 @@ tree_t *tree_search(tree_t *node, long key) {
   return node;
 }
 
+tree_t *tree_pred(tree_t *node) {
+  if (node) {
+    if (LFT_CHILD(node)) {
+      return tree_max(LFT_CHILD(node));
+    }
+    tree_t *parent;
+    while ((parent = node->parent) && node == LFT_CHILD(parent)) {
+      node = parent;
+    }
+    return parent;
+  }
+  return NULL;
+}
+
 tree_t *tree_succ(tree_t *node) {
   if (node) {
     if (RGT_CHILD(node)) {
@@ -181,6 +212,7 @@ tree_t *tree_succ(tree_t *node) {
     }
     return parent;
   }
+  return NULL;
 }
 
 void tree_print(FILE *file, tree_t *node, unsigned indent) {
@@ -255,11 +287,10 @@ typedef struct {
   int color;
 } rbtree_t;
 
-tree_t *rbtree_new(long key, void *value) {
+tree_t *rbtree_new(long key) {
   rbtree_t *node = (rbtree_t *)malloc(sizeof(rbtree_t));
   /* Initialize */
   node->key       = key;
-  node->value     = value;
   node->parent    = NULL;
   LFT_CHILD(node) = NULL;
   RGT_CHILD(node) = NULL;
@@ -272,6 +303,10 @@ static unsigned rbtree_verify(tree_t *node) {
     /* Structure verifing */
     assert(!LFT_CHILD(node) || LFT_CHILD(node)->parent == node);
     assert(!RGT_CHILD(node) || RGT_CHILD(node)->parent == node);
+
+    /* Binary search verifing */
+    assert(!LFT_CHILD(node) || LFT_CHILD(node)->key <= node->key);
+    assert(!RGT_CHILD(node) || RGT_CHILD(node)->key >= node->key);
 
     /* Property 1 */
     assert(RB_COLOR(node) == RB_BLACK || RB_COLOR(node) == RB_RED);
@@ -507,23 +542,137 @@ void rbtree_print(FILE *file, tree_t *node, unsigned indent) {
   }
 }
 
+/*
+ * For each node x, the heights of the left and right subtrees
+ * of x differ by at most 1
+ * */
+typedef struct {
+  TREE_COMMON;
+  unsigned long height;
+} avltree_t;
+
+tree_t *avltree_new(long key) {
+  rbtree_t *node = (rbtree_t *)malloc(sizeof(rbtree_t));
+  /* Initialize */
+  node->key         = key;
+  node->parent      = NULL;
+  LFT_CHILD(node)   = NULL;
+  RGT_CHILD(node)   = NULL;
+  XAVL_HEIGHT(node) = 1;
+  return (tree_t *)node;
+}
+
+void avltree_insert(tree_t **root_ptr, tree_t *z) {
+  tree_insert(root_ptr, z);
+
+  tree_t *p = z->parent;
+  while (p) {
+    int dir = DIRECTION(z);
+    /* Maintain height */
+    unsigned long h1 = AVL_HEIGHT(z);
+    unsigned long h2 = AVL_HEIGHT(CHILD(p, !dir));
+    unsigned long h = XAVL_HEIGHT(p) = MAX(h1, h2) + 1;
+
+    tree_t *g = p->parent;
+    if (p->parent) {
+      int dir2         = DIRECTION(p);
+      unsigned long h3 = AVL_HEIGHT(CHILD(g, !dir2));
+      if (h > h3 + 1) {
+        /*
+         * In this case, the original status seems:
+         *
+         *  H(g) = k
+         *  H(p) = k - 1
+         *  H(u) = k - 2
+         *
+         * and after insertion:
+         *
+         *  H(p) = k
+         *  H(u) = k - 2
+         *
+         * By performing rotation:
+         *
+         *  H(p) = k - 1
+         *  H(u) = k - 1
+         *  H(g) = k (not changed)
+         * */
+        if (dir != dir2) {
+          /*
+           * g
+           *  \
+           *   p
+           *  / \
+           * z
+           * */
+          tree_rotate(root_ptr, p, dir2);
+          XAVL_HEIGHT(p) =
+            MAX(AVL_HEIGHT(LFT_CHILD(p)), AVL_HEIGHT(RGT_CHILD(p))) + 1;
+          XAVL_HEIGHT(z) =
+            MAX(AVL_HEIGHT(LFT_CHILD(z)), AVL_HEIGHT(RGT_CHILD(z))) + 1;
+          p = z;
+        }
+        /*
+         * g
+         *  \
+         *   p
+         *  / \
+         *     z
+         * */
+        tree_rotate(root_ptr, g, !dir2);
+        XAVL_HEIGHT(g) =
+          MAX(AVL_HEIGHT(LFT_CHILD(g)), AVL_HEIGHT(RGT_CHILD(g))) + 1;
+        XAVL_HEIGHT(p) =
+          MAX(AVL_HEIGHT(LFT_CHILD(p)), AVL_HEIGHT(RGT_CHILD(p))) + 1;
+
+        /* Height of g not changed */
+        return;
+      }
+    }
+
+    z = p;
+    p = g;
+  }
+}
+
+void avltree_delete(tree_t **root_ptr, tree_t *z);
+
+static void avltree_verify(tree_t *node) {
+  if (node) {
+    /* Structure verifing */
+    assert(!LFT_CHILD(node) || LFT_CHILD(node)->parent == node);
+    assert(!RGT_CHILD(node) || RGT_CHILD(node)->parent == node);
+
+    /* Binary search verifing */
+    assert(!LFT_CHILD(node) || LFT_CHILD(node)->key <= node->key);
+    assert(!RGT_CHILD(node) || RGT_CHILD(node)->key >= node->key);
+
+    avltree_verify(LFT_CHILD(node));
+    avltree_verify(RGT_CHILD(node));
+
+    unsigned long h1 = AVL_HEIGHT(LFT_CHILD(node));
+    unsigned long h2 = AVL_HEIGHT(RGT_CHILD(node));
+    assert(h2 <= h1 + 1 && h1 <= h2 + 1);
+    assert(AVL_HEIGHT(node) == MAX(h1, h2) + 1);
+  }
+}
+
 int main(void) {
   tree_t *tree = NULL, *target;
 
-  tree_insert(&tree, tree_new(7, NULL));
-  tree_insert(&tree, tree_new(4, NULL));
-  tree_insert(&tree, tree_new(11, NULL));
-  tree_insert(&tree, tree_new(3, NULL));
-  tree_insert(&tree, tree_new(6, NULL));
-  tree_insert(&tree, tree_new(9, NULL));
-  tree_insert(&tree, target = tree_new(18, NULL));
-  tree_insert(&tree, tree_new(2, NULL));
-  tree_insert(&tree, tree_new(14, NULL));
-  tree_insert(&tree, tree_new(19, NULL));
-  tree_insert(&tree, tree_new(12, NULL));
-  tree_insert(&tree, tree_new(17, NULL));
-  tree_insert(&tree, tree_new(22, NULL));
-  tree_insert(&tree, tree_new(20, NULL));
+  tree_insert(&tree, tree_new(7));
+  tree_insert(&tree, tree_new(4));
+  tree_insert(&tree, tree_new(11));
+  tree_insert(&tree, tree_new(3));
+  tree_insert(&tree, tree_new(6));
+  tree_insert(&tree, tree_new(9));
+  tree_insert(&tree, target = tree_new(18));
+  tree_insert(&tree, tree_new(2));
+  tree_insert(&tree, tree_new(14));
+  tree_insert(&tree, tree_new(19));
+  tree_insert(&tree, tree_new(12));
+  tree_insert(&tree, tree_new(17));
+  tree_insert(&tree, tree_new(22));
+  tree_insert(&tree, tree_new(20));
 
   printf("Tree test:\n");
   /* Figure 13-3 */
@@ -536,25 +685,64 @@ int main(void) {
 
   printf("Red-black tree test:\n");
 
-  rbtree_insert(&tree, rbtree_new(11, NULL));
+  rbtree_insert(&tree, rbtree_new(11));
   rbtree_verify(tree);
-  rbtree_insert(&tree, rbtree_new(2, NULL));
+  rbtree_insert(&tree, rbtree_new(2));
   rbtree_verify(tree);
-  rbtree_insert(&tree, rbtree_new(14, NULL));
+  rbtree_insert(&tree, rbtree_new(14));
   rbtree_verify(tree);
-  rbtree_insert(&tree, rbtree_new(1, NULL));
+  rbtree_insert(&tree, rbtree_new(1));
   rbtree_verify(tree);
-  rbtree_insert(&tree, rbtree_new(7, NULL));
+  rbtree_insert(&tree, rbtree_new(7));
   rbtree_verify(tree);
-  rbtree_insert(&tree, rbtree_new(15, NULL));
+  rbtree_insert(&tree, rbtree_new(15));
   rbtree_verify(tree);
-  rbtree_insert(&tree, rbtree_new(5, NULL));
+  rbtree_insert(&tree, rbtree_new(5));
   rbtree_verify(tree);
-  rbtree_insert(&tree, rbtree_new(8, NULL));
+  rbtree_insert(&tree, rbtree_new(8));
   rbtree_verify(tree);
-  rbtree_insert(&tree, rbtree_new(4, NULL));
+  rbtree_insert(&tree, rbtree_new(4));
   rbtree_verify(tree);
   rbtree_print(stdout, tree, 0);
+
+  long last = LONG_MIN;
+  for (tree_t *node = tree_min(tree); node; node = tree_succ(node)) {
+    assert(last <= node->key);
+    last = node->key;
+  }
+
+  last = LONG_MAX;
+  for (tree_t *node = tree_max(tree); node; node = tree_pred(node)) {
+    assert(last >= node->key);
+    last = node->key;
+  }
+
+  assert(target = tree_search(tree, 15));
+  rbtree_delete(&tree, target);
+  free(target);
+  rbtree_verify(tree);
+
+  tree_free(&tree);
+  assert(tree == NULL);
+
+  avltree_insert(&tree, avltree_new(4));
+  avltree_verify(tree);
+  avltree_insert(&tree, avltree_new(5));
+  avltree_verify(tree);
+  avltree_insert(&tree, avltree_new(6));
+  avltree_verify(tree);
+  avltree_insert(&tree, avltree_new(3));
+  avltree_verify(tree);
+  avltree_insert(&tree, avltree_new(2));
+  avltree_verify(tree);
+  avltree_insert(&tree, avltree_new(8));
+  avltree_verify(tree);
+  avltree_insert(&tree, avltree_new(7));
+  avltree_verify(tree);
+  avltree_insert(&tree, avltree_new(0));
+  avltree_verify(tree);
+  avltree_insert(&tree, avltree_new(1));
+  avltree_verify(tree);
   tree_free(&tree);
 
   return 0;

@@ -1,9 +1,14 @@
 CC     = gcc
-CFLAGS = -g
+CFLAGS = -g -Wall
 
-.PHONY: clean
+.PHONY: all clean
+
+all: tree treap
 
 tree: tree.c
+	$(CC) $(CFLAGS) -o $@ $^
+
+treap: treap.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
