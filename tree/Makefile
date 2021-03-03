@@ -3,13 +3,19 @@ CFLAGS = -g -Wall
 
 .PHONY: all clean
 
-all: tree treap
+all: bin/tree bin/treap bin/splaytree
 
-tree: tree.c
+bin/tree: tree.c
+	mkdir -p bin
 	$(CC) $(CFLAGS) -o $@ $^
 
-treap: treap.c
+bin/treap: treap.c
+	mkdir -p bin
+	$(CC) $(CFLAGS) -o $@ $^
+
+bin/splaytree: splaytree.c
+	mkdir -p bin
 	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f tree treap
+	rm -rf bin/

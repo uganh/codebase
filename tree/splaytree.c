@@ -67,7 +67,7 @@ void splay(tree_t **node_ptr, size_t k) {
       dir2 = 0;
     }
 
-    splay(CHILD(p, dir2), k);
+    splay(&CHILD(p, dir2), k);
 
     if (dir == dir2) {
       /*
@@ -90,7 +90,7 @@ void splay(tree_t **node_ptr, size_t k) {
        *  \
        *   z
        * */
-      tree_rotate(CHILD(g, dir), dir);
+      tree_rotate(&CHILD(g, dir), dir);
     }
   }
 
@@ -101,7 +101,7 @@ void splay(tree_t **node_ptr, size_t k) {
    *  /
    * z
    * */
-  tree_rotate(g, !dir);
+  tree_rotate(node_ptr, !dir);
 }
 
 void merge(tree_t **dst_ptr, tree_t *src) {
@@ -119,3 +119,7 @@ tree_t *split(tree_t **ori_ptr, size_t k) {
   return drv;
 }
 
+int main(void) {
+
+  return 0;
+}

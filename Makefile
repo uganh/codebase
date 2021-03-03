@@ -3,10 +3,11 @@ CFLAGS = -g -Wall
 
 .PHONY: all clean
 
-all: kmp
+all: bin/kmp
 
-kmp: kmp.c
+bin/kmp: kmp.c
+	mkdir -p bin
 	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f kmp
+	rm -rf bin/
