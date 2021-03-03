@@ -12,4 +12,4 @@ treap: treap.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -f tree
+	rm -f tree treap
