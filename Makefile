@@ -1,20 +1,29 @@
-CC     = gcc
-CFLAGS = -g -Wall
+CC       = gcc
+CXX		 = c++
+CFLAGS   = -g -Wall
+CXXFLAGS = $(CFLAGS) -std=c++11
 
-.PHONY: all clean
+TARGETS  = kmp
 
-all: bin/kmp bin/test_sa
+all: $(TARGETS) test_sa test_sort
 
-bin/kmp: kmp.c
-	mkdir -p bin
+.PHONY: all test clean
+
+$(TARGETS): %: %.c
 	$(CC) $(CFLAGS) -o $@ $^
 
-bin/sa.o: sa.c sa.h
-	mkdir -p bin
-	$(CC) $(CFLAGS) -c -o $@ $<
+sa.o: sa.c sa.h
+	$(CC) $(CFLAGS) -c $<
 
-bin/test_sa: test_sa.c bin/sa.o
-	$(CC) $(CFLAGS) -o $@ $^
+test_sa: test_sa.c sa.o
+	$(CC) $(CFLAGS) -o test_sa $^
+
+test_sort: test_sort.cc sort.h heap.h
+	$(CXX) $(CXXFLAGS) -o $@ $<
+
+test: test_sa test_sort
+	./test_sa
+	./test_sort
 
 clean:
-	rm -rf bin/
+	rm -rf $(TARGETS) *.o test_sa test_sort

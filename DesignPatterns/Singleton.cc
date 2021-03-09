@@ -11,6 +11,7 @@ class Singleton {
 
 public:
   static Singleton *getInstance(void) {
+    /* FIXME: Race condition in multi-thread environment */
     static Singleton local_instance;
     return &local_instance;
   }
@@ -18,5 +19,6 @@ public:
 
 int main(void) {
   Singleton *singleton = Singleton::getInstance();
+  std::cout << "Singleton: " << singleton << std::endl;
   return 0;
 }

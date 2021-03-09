@@ -1,21 +1,14 @@
-CC     = gcc
-CFLAGS = -g -Wall
+CC      = gcc
+CFLAGS  = -g -Wall
+
+TARGETS = tree treap splaytree
+
+all: $(TARGETS)
 
 .PHONY: all clean
 
-all: bin/tree bin/treap bin/splaytree
-
-bin/tree: tree.c
-	mkdir -p bin
-	$(CC) $(CFLAGS) -o $@ $^
-
-bin/treap: treap.c
-	mkdir -p bin
-	$(CC) $(CFLAGS) -o $@ $^
-
-bin/splaytree: splaytree.c
-	mkdir -p bin
+$(TARGETS): %: %.c
 	$(CC) $(CFLAGS) -o $@ $^
 
 clean:
-	rm -rf bin/
+	rm -rf $(TARGETS)
