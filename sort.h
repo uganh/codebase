@@ -7,7 +7,7 @@ void HeapSort(Iterator first, Iterator last) {
   using std::swap;
   BuildHeap(first, last);
   while (first < last) {
-    std::swap(*first, *--last);
+    swap(*first, *--last);
     Heapify(first, last, 0);
   }
 }
@@ -17,7 +17,7 @@ void Reverse(Iterator first, Iterator last) {
   using std::swap;
   if (first < last) {
     while (first < --last) {
-      std::swap(*first, *last);
+      swap(*first, *last);
       ++first;
     }
   }
@@ -80,15 +80,15 @@ void QuickSort(Iterator first, Iterator last) {
        * (3) [middle, limit) > *limit
        * */
       if (*right <= *limit) {
-        std::swap(*middle, *right);
+        swap(*middle, *right);
         if (*middle < *limit) {
-          std::swap(*left++, *middle);
+          swap(*left++, *middle);
         }
         ++middle;
       }
       ++right;
     }
-    std::swap(*middle++, *limit);
+    swap(*middle++, *limit);
     QuickSort(first, left);
     QuickSort(middle, last);
   }
@@ -96,6 +96,8 @@ void QuickSort(Iterator first, Iterator last) {
 
 template <typename Iterator>
 Iterator Select(Iterator first, Iterator last, size_t n_th) {
+  using std::swap;
+  
   if (last <= first && first + n_th >= last) {
     return last;
   }
@@ -113,15 +115,15 @@ Iterator Select(Iterator first, Iterator last, size_t n_th) {
        * (3) [middle, limit) > *limit
        * */
       if (*right <= *limit) {
-        std::swap(*middle, *right);
+        swap(*middle, *right);
         if (*middle < *limit) {
-          std::swap(*left++, *middle);
+          swap(*left++, *middle);
         }
         ++middle;
       }
       ++right;
     }
-    std::swap(*middle++, *limit);
+    swap(*middle++, *limit);
     if (first + n_th >= middle) {
       n_th -= (middle - first);
       first = middle;

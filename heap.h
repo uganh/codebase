@@ -22,7 +22,7 @@ void Heapify(Iterator first, Iterator last, size_t index) {
       break;
     }
     using std::swap;
-    std::swap(*largest, *(first + index));
+    swap(*largest, *(first + index));
     index = largest - first;
   }
 }
