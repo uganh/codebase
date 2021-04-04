@@ -14,9 +14,9 @@
  * Binary Search Tree
  * */
 
-#define TREE_COMMON                                                            \
-  long key;                                                                    \
-  tree_t *parent;                                                              \
+#define TREE_COMMON \
+  long key;         \
+  tree_t *parent;   \
   tree_t *children[2]
 
 #define CHILD(node, dir) ((tree_t *)(node))->children[dir]
@@ -55,8 +55,8 @@ struct tree {
 tree_t *tree_new(long key) {
   tree_t *node = (tree_t *)malloc(sizeof(tree_t));
   /* Initialize */
-  node->key       = key;
-  node->parent    = NULL;
+  node->key = key;
+  node->parent = NULL;
   LFT_CHILD(node) = NULL;
   RGT_CHILD(node) = NULL;
   return node;
@@ -147,7 +147,7 @@ static void tree_transplant(tree_t **root_ptr, tree_t *u, tree_t *v) {
   }
 }
 
-void tree_delete(tree_t **root_ptr, tree_t *z) {
+void tree_remove(tree_t **root_ptr, tree_t *z) {
   if (!LFT_CHILD(z)) {
     tree_transplant(root_ptr, z, RGT_CHILD(z));
   } else if (!RGT_CHILD(z)) {
@@ -158,11 +158,11 @@ void tree_delete(tree_t **root_ptr, tree_t *z) {
     tree_t *y = tree_min(RGT_CHILD(z));
     if (y->parent != z) {
       tree_transplant(root_ptr, y, RGT_CHILD(y));
-      RGT_CHILD(y)         = RGT_CHILD(z);
+      RGT_CHILD(y) = RGT_CHILD(z);
       RGT_CHILD(z)->parent = y;
     }
     tree_transplant(root_ptr, z, y);
-    LFT_CHILD(y)         = LFT_CHILD(z);
+    LFT_CHILD(y) = LFT_CHILD(z);
     LFT_CHILD(y)->parent = y;
   }
   /* It's the caller's responsibility to free z */
@@ -268,7 +268,7 @@ void tree_rotate(tree_t **root_ptr, tree_t *x, int dir) {
   }
 
   CHILD(y, dir) = x;
-  x->parent     = y;
+  x->parent = y;
 }
 
 /*
@@ -290,8 +290,8 @@ typedef struct {
 tree_t *rbtree_new(long key) {
   rbtree_t *node = (rbtree_t *)malloc(sizeof(rbtree_t));
   /* Initialize */
-  node->key       = key;
-  node->parent    = NULL;
+  node->key = key;
+  node->parent = NULL;
   LFT_CHILD(node) = NULL;
   RGT_CHILD(node) = NULL;
   XRB_COLOR(node) = RB_RED;
@@ -348,7 +348,7 @@ void rbtree_insert(tree_t **root_ptr, tree_t *z) {
      * */
 
     // Grandparent exists
-    int dir   = DIRECTION(z->parent);
+    int dir = DIRECTION(z->parent);
     tree_t *u = CHILD(z->parent->parent, !dir);
 
     if (RB_COLOR(u) == RB_RED) {
@@ -362,8 +362,8 @@ void rbtree_insert(tree_t **root_ptr, tree_t *z) {
        * z@R
        * */
       XRB_COLOR(u) = XRB_COLOR(z->parent) = RB_BLACK;
-      XRB_COLOR(z->parent->parent)        = RB_RED;
-      z                                   = z->parent->parent;
+      XRB_COLOR(z->parent->parent) = RB_RED;
+      z = z->parent->parent;
     } else {
       if (DIRECTION(z) != dir) {
         /*
@@ -387,7 +387,7 @@ void rbtree_insert(tree_t **root_ptr, tree_t *z) {
        *   /
        * z@R
        * */
-      XRB_COLOR(z->parent)         = RB_BLACK;
+      XRB_COLOR(z->parent) = RB_BLACK;
       XRB_COLOR(z->parent->parent) = RB_RED;
       tree_rotate(root_ptr, z->parent->parent, !dir);
     }
@@ -395,7 +395,7 @@ void rbtree_insert(tree_t **root_ptr, tree_t *z) {
   XRB_COLOR(*root_ptr) = RB_BLACK;
 }
 
-void rbtree_delete(tree_t **root_ptr, tree_t *z) {
+void rbtree_remove(tree_t **root_ptr, tree_t *z) {
   /* 1. Maintain node y as the node either removed from the tree
    *    or moved within the tree
    * 2. Keep track of the node x that moves into node y's original position
@@ -412,22 +412,22 @@ void rbtree_delete(tree_t **root_ptr, tree_t *z) {
     tree_transplant(root_ptr, z, x);
   } else {
     /* Node y is the successor of z */
-    y                = tree_min(RGT_CHILD(z));
+    y = tree_min(RGT_CHILD(z));
     y_original_color = RB_COLOR(y);
-    x                = RGT_CHILD(y);
+    x = RGT_CHILD(y);
     if (y->parent == z) {
       x_parent = y;
     } else {
       tree_transplant(root_ptr, y, x);
-      RGT_CHILD(y)         = RGT_CHILD(z);
+      RGT_CHILD(y) = RGT_CHILD(z);
       RGT_CHILD(y)->parent = y;
-      x_parent             = y;
+      x_parent = y;
     }
     tree_transplant(root_ptr, z, y);
     // Node y have no left child
-    LFT_CHILD(y)         = LFT_CHILD(z);
+    LFT_CHILD(y) = LFT_CHILD(z);
     LFT_CHILD(y)->parent = y;
-    XRB_COLOR(y)         = XRB_COLOR(z);
+    XRB_COLOR(y) = XRB_COLOR(z);
   }
 
   if (y_original_color == RB_RED) {
@@ -464,15 +464,14 @@ void rbtree_delete(tree_t **root_ptr, tree_t *z) {
        *      / \
        *    n@B n'@B
        * */
-      XRB_COLOR(s)        = RB_BLACK;
+      XRB_COLOR(s) = RB_BLACK;
       XRB_COLOR(x_parent) = RB_RED;
       tree_rotate(root_ptr, x_parent, dir);
       s = CHILD(x_parent, !dir);
     }
 
-    if (
-      RB_COLOR(LFT_CHILD(s)) == RB_BLACK &&
-      RB_COLOR(RGT_CHILD(s)) == RB_BLACK) {
+    if (RB_COLOR(LFT_CHILD(s)) == RB_BLACK &&
+        RB_COLOR(RGT_CHILD(s)) == RB_BLACK) {
       /*
        * Case 2:
        *
@@ -483,7 +482,7 @@ void rbtree_delete(tree_t **root_ptr, tree_t *z) {
        *   n@B n'@B
        * */
       XRB_COLOR(s) = RB_RED;
-      x            = x_parent;
+      x = x_parent;
       /* Always keep track of the parent of x */
       x_parent = x->parent;
     } else {
@@ -497,7 +496,7 @@ void rbtree_delete(tree_t **root_ptr, tree_t *z) {
          *     / \
          *   n@R n'@B
          * */
-        XRB_COLOR(s)             = RB_RED;
+        XRB_COLOR(s) = RB_RED;
         XRB_COLOR(CHILD(s, dir)) = RB_BLACK;
         tree_rotate(root_ptr, s, !dir);
         s = CHILD(x_parent, !dir);
@@ -511,8 +510,8 @@ void rbtree_delete(tree_t **root_ptr, tree_t *z) {
        *     / \
        *   n@? n'@R
        * */
-      XRB_COLOR(s)              = RB_COLOR(x_parent);
-      XRB_COLOR(x_parent)       = RB_BLACK;
+      XRB_COLOR(s) = RB_COLOR(x_parent);
+      XRB_COLOR(x_parent) = RB_BLACK;
       XRB_COLOR(CHILD(s, !dir)) = RB_BLACK;
       tree_rotate(root_ptr, x_parent, dir);
       x = *root_ptr;
@@ -554,87 +553,83 @@ typedef struct {
 tree_t *avltree_new(long key) {
   rbtree_t *node = (rbtree_t *)malloc(sizeof(rbtree_t));
   /* Initialize */
-  node->key         = key;
-  node->parent      = NULL;
-  LFT_CHILD(node)   = NULL;
-  RGT_CHILD(node)   = NULL;
+  node->key = key;
+  node->parent = NULL;
+  LFT_CHILD(node) = NULL;
+  RGT_CHILD(node) = NULL;
   XAVL_HEIGHT(node) = 1;
   return (tree_t *)node;
 }
 
-void avltree_insert(tree_t **root_ptr, tree_t *z) {
-  tree_insert(root_ptr, z);
+static void avltree_fixup(tree_t **root_ptr, tree_t *g) {
+  while (g) {
+    int dir = AVL_HEIGHT(RGT_CHILD(g)) >= AVL_HEIGHT(LFT_CHILD(g));
+    tree_t *p = CHILD(g, dir);
 
-  tree_t *p = z->parent;
-  while (p) {
-    int dir = DIRECTION(z);
-    /* Maintain height */
-    unsigned long h1 = AVL_HEIGHT(z);
-    unsigned long h2 = AVL_HEIGHT(CHILD(p, !dir));
-    unsigned long h = XAVL_HEIGHT(p) = MAX(h1, h2) + 1;
-
-    tree_t *g = p->parent;
-    if (p->parent) {
-      int dir2         = DIRECTION(p);
-      unsigned long h3 = AVL_HEIGHT(CHILD(g, !dir2));
-      if (h > h3 + 1) {
+    if (AVL_HEIGHT(p) > AVL_HEIGHT(CHILD(g, !dir)) + 1) {
+      if (AVL_HEIGHT(CHILD(p, dir)) < AVL_HEIGHT(CHILD(p, !dir))) {
+        tree_t *z = CHILD(p, !dir);
         /*
-         * In this case, the original status seems:
-         *
-         *  H(g) = k
-         *  H(p) = k - 1
-         *  H(u) = k - 2
-         *
-         * and after insertion:
-         *
-         *  H(p) = k
-         *  H(u) = k - 2
-         *
-         * By performing rotation:
-         *
-         *  H(p) = k - 1
-         *  H(u) = k - 1
-         *  H(g) = k (not changed)
+         *  g
+         * / \
+         *    p
+         *   / \
+         *  z
          * */
-        if (dir != dir2) {
-          /*
-           * g
-           *  \
-           *   p
-           *  / \
-           * z
-           * */
-          tree_rotate(root_ptr, p, dir2);
-          XAVL_HEIGHT(p) =
-            MAX(AVL_HEIGHT(LFT_CHILD(p)), AVL_HEIGHT(RGT_CHILD(p))) + 1;
-          XAVL_HEIGHT(z) =
-            MAX(AVL_HEIGHT(LFT_CHILD(z)), AVL_HEIGHT(RGT_CHILD(z))) + 1;
-          p = z;
-        }
-        /*
-         * g
-         *  \
-         *   p
-         *  / \
-         *     z
-         * */
-        tree_rotate(root_ptr, g, !dir2);
-        XAVL_HEIGHT(g) =
-          MAX(AVL_HEIGHT(LFT_CHILD(g)), AVL_HEIGHT(RGT_CHILD(g))) + 1;
+        tree_rotate(root_ptr, p, dir);
         XAVL_HEIGHT(p) =
           MAX(AVL_HEIGHT(LFT_CHILD(p)), AVL_HEIGHT(RGT_CHILD(p))) + 1;
-
-        /* Height of g not changed */
-        return;
+        XAVL_HEIGHT(z) =
+          MAX(AVL_HEIGHT(LFT_CHILD(z)), AVL_HEIGHT(RGT_CHILD(z))) + 1;
+        p = z;
       }
+      /*
+       *  g
+       * / \
+       *    p
+       *   / \
+       *      z
+       * */
+      tree_rotate(root_ptr, g, !dir);
+      XAVL_HEIGHT(g) =
+        MAX(AVL_HEIGHT(LFT_CHILD(g)), AVL_HEIGHT(RGT_CHILD(g))) + 1;
+      g = p;
     }
 
-    z = p;
-    p = g;
+    XAVL_HEIGHT(g) =
+      MAX(AVL_HEIGHT(LFT_CHILD(g)), AVL_HEIGHT(RGT_CHILD(g))) + 1;
+    g = g->parent;
   }
 }
 
-void avltree_delete(tree_t **root_ptr, tree_t *z);
+void avltree_insert(tree_t **root_ptr, tree_t *z) {
+  tree_insert(root_ptr, z);
+  avltree_fixup(root_ptr, z->parent);
+}
+
+void avltree_remove(tree_t **root_ptr, tree_t *z) {
+  tree_t *x = z->parent;
+  if (!LFT_CHILD(z)) {
+    tree_transplant(root_ptr, z, RGT_CHILD(z));
+  } else if (!RGT_CHILD(z)) {
+    tree_transplant(root_ptr, z, LFT_CHILD(z));
+  } else {
+    // y is the successor of z
+    // y has no left child
+    tree_t *y = tree_min(RGT_CHILD(z));
+    x = y->parent;
+    if (y->parent != z) {
+      tree_transplant(root_ptr, y, RGT_CHILD(y));
+      RGT_CHILD(y) = RGT_CHILD(z);
+      RGT_CHILD(z)->parent = y;
+    }
+    tree_transplant(root_ptr, z, y);
+    LFT_CHILD(y) = LFT_CHILD(z);
+    LFT_CHILD(y)->parent = y;
+  }
+
+  avltree_fixup(root_ptr, x);
+}
 
 static void avltree_verify(tree_t *node) {
   if (node) {
@@ -653,6 +648,26 @@ static void avltree_verify(tree_t *node) {
     unsigned long h2 = AVL_HEIGHT(RGT_CHILD(node));
     assert(h2 <= h1 + 1 && h1 <= h2 + 1);
     assert(AVL_HEIGHT(node) == MAX(h1, h2) + 1);
+  }
+}
+
+void avltree_print(FILE *file, tree_t *node, unsigned indent) {
+  if (node) {
+    for (unsigned i = 0; i < indent; ++i) {
+      fprintf(file, " ");
+    }
+    if (!node->parent) {
+      fprintf(file, "* ");
+    } else if (LFT_CHILD(node->parent) == node) {
+      fprintf(file, "+ ");
+    } else if (RGT_CHILD(node->parent) == node) {
+      fprintf(file, "- ");
+    } else {
+      assert(0 && "Bad tree structure");
+    }
+    fprintf(file, "%ld:%lu\n", node->key, AVL_HEIGHT(node));
+    avltree_print(file, LFT_CHILD(node), indent + 1);
+    avltree_print(file, RGT_CHILD(node), indent + 1);
   }
 }
 
@@ -718,12 +733,14 @@ int main(void) {
   }
 
   assert(target = tree_search(tree, 15));
-  rbtree_delete(&tree, target);
+  rbtree_remove(&tree, target);
   free(target);
   rbtree_verify(tree);
 
   tree_free(&tree);
   assert(tree == NULL);
+
+  printf("avltree test:\n");
 
   avltree_insert(&tree, avltree_new(4));
   avltree_verify(tree);
@@ -743,6 +760,7 @@ int main(void) {
   avltree_verify(tree);
   avltree_insert(&tree, avltree_new(1));
   avltree_verify(tree);
+  avltree_print(stdout, tree, 0);
   tree_free(&tree);
 
   return 0;
