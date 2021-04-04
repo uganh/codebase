@@ -1,9 +1,12 @@
+#include <assert.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #define CHILD(node, dir) (node)->children[dir]
 #define SUBTREE_SIZE(node) (node)->subtree_size
+#define TREAP_MAINTAIN(p) \
+  SUBTREE_SIZE(p) = SUBTREE_SIZE(CHILD(p, 0)) + SUBTREE_SIZE(CHILD(p, 1)) + 1
 
 typedef struct treap treap_t;
 typedef struct treap_node treap_node_t;
@@ -27,11 +30,14 @@ static treap_node_t NIL = {{NULL, NULL}, 0, 0, 0};
 static void treap_rotate(treap_node_t **node_ptr, int dir) {
   treap_node_t *p = *node_ptr;
   treap_node_t *z = CHILD(p, !dir);
-  CHILD(p, !dir)  = CHILD(z, dir);
-  CHILD(z, dir)   = p;
-  SUBTREE_SIZE(p) = SUBTREE_SIZE(CHILD(p, 0)) + SUBTREE_SIZE(CHILD(p, 1)) + 1;
-  SUBTREE_SIZE(z) = SUBTREE_SIZE(CHILD(z, 0)) + SUBTREE_SIZE(CHILD(z, 1)) + 1;
-  *node_ptr       = z;
+  CHILD(p, !dir) = CHILD(z, dir);
+  CHILD(z, dir) = p;
+  TREAP_MAINTAIN(p);
+  TREAP_MAINTAIN(z);
+  // SUBTREE_SIZE(p) = SUBTREE_SIZE(CHILD(p, 0)) + SUBTREE_SIZE(CHILD(p, 1)) +
+  // 1; SUBTREE_SIZE(z) = SUBTREE_SIZE(CHILD(z, 0)) + SUBTREE_SIZE(CHILD(z, 1))
+  // + 1;
+  *node_ptr = z;
 }
 
 static void treap_node_insert(treap_node_t **node_ptr, treap_node_t *z) {
@@ -50,26 +56,7 @@ static void treap_node_insert(treap_node_t **node_ptr, treap_node_t *z) {
   }
 }
 
-treap_t *treap_new(void) {
-  treap_t *treap = (treap_t *)malloc(sizeof(treap_t));
-  if (treap) {
-    treap->root = &NIL;
-    treap->seed = 47;
-  }
-  return treap;
-}
-
-void treap_insert(treap_t *treap, int key) {
-  treap_node_t *z = (treap_node_t *)malloc(sizeof(treap_node_t));
-  CHILD(z, 0)     = &NIL;
-  CHILD(z, 1)     = &NIL;
-  z->key          = key;
-  z->priority     = rand_r(&treap->seed);
-  z->subtree_size = 1;
-  treap_node_insert(&treap->root, z);
-}
-
-void treap_node_remove(treap_node_t **node_ptr, int key) {
+static void treap_node_remove(treap_node_t **node_ptr, int key) {
   treap_node_t *x = *node_ptr;
   if (x == &NIL) {
     return;
@@ -94,8 +81,78 @@ void treap_node_remove(treap_node_t **node_ptr, int key) {
   }
 
   if ((x = *node_ptr) != &NIL) {
-    SUBTREE_SIZE(x) = SUBTREE_SIZE(CHILD(x, 0)) + SUBTREE_SIZE(CHILD(x, 1)) + 1;
+    TREAP_MAINTAIN(x);
+    // SUBTREE_SIZE(x) = SUBTREE_SIZE(CHILD(x, 0)) + SUBTREE_SIZE(CHILD(x, 1)) +
+    // 1;
   }
+}
+
+static void treap_node_split(treap_node_t *node, int key,
+                             treap_node_t **lhs_ptr, treap_node_t **rhs_ptr) {
+  if (node == &NIL) {
+    *lhs_ptr = *rhs_ptr = &NIL;
+  } else {
+    treap_node_t *lhs, *rhs;
+    if (key < node->key) {
+      treap_node_split(CHILD(node, 0), key, &lhs, &rhs);
+      CHILD(node, 0) = rhs;
+      TREAP_MAINTAIN(node);
+      *lhs_ptr = lhs;
+      *rhs_ptr = node;
+    } else {
+      treap_node_split(CHILD(node, 1), key, &lhs, &rhs);
+      CHILD(node, 1) = lhs;
+      TREAP_MAINTAIN(node);
+      *lhs_ptr = node;
+      *rhs_ptr = rhs;
+    }
+  }
+}
+
+static treap_node_t *treap_node_merge(treap_node_t *lhs, treap_node_t *rhs) {
+  if (lhs == &NIL) {
+    return rhs;
+  }
+  if (rhs == &NIL) {
+    return lhs;
+  }
+  if (lhs->priority > rhs->priority) {
+    CHILD(lhs, 1) = treap_node_merge(CHILD(lhs, 1), rhs);
+    TREAP_MAINTAIN(lhs);
+    return lhs;
+  } else {
+    CHILD(rhs, 0) = treap_node_merge(lhs, CHILD(rhs, 0));
+    TREAP_MAINTAIN(rhs);
+    return rhs;
+  }
+}
+
+treap_t *treap_new(void) {
+  treap_t *treap = (treap_t *)malloc(sizeof(treap_t));
+  if (treap) {
+    treap->root = &NIL;
+    treap->seed = 47;
+  }
+  return treap;
+}
+
+void treap_insert(treap_t *treap, int key) {
+  treap_node_t *z = (treap_node_t *)malloc(sizeof(treap_node_t));
+  assert(z && "Allocate failed");
+  CHILD(z, 0) = &NIL;
+  CHILD(z, 1) = &NIL;
+  z->key = key;
+  z->priority = rand_r(&treap->seed);
+  z->subtree_size = 1;
+
+#ifdef WITH_ROTATE
+  treap_node_insert(&treap->root, z);
+#else
+  treap_node_t *lhs, *rhs;
+  treap_node_split(treap->root, key, &lhs, &rhs);
+  lhs = treap_node_merge(lhs, z);
+  treap->root = treap_node_merge(lhs, rhs);
+#endif
 }
 
 void treap_remove(treap_t *treap, int key) {
@@ -103,7 +160,7 @@ void treap_remove(treap_t *treap, int key) {
 }
 
 size_t treap_rank(treap_t *treap, int key) {
-  size_t r        = 0;
+  size_t r = 0;
   treap_node_t *x = treap->root;
   while (x != &NIL) {
     if (key < x->key) {
